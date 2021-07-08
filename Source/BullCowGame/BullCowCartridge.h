@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Console/Cartridge.h"
+#include "FBullCowCount.h"
 #include "BullCowCartridge.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -20,16 +21,17 @@ public:
 	// Your declarations go below!
 private:
 	UPROPERTY(EditAnywhere)
-	int MaxLives;
+	int32 MaxLives;
 	UPROPERTY(VisibleAnywhere)
-	int CurrentLives;
+	int32 CurrentLives;
+	UPROPERTY(VisibleAnywhere)
+	TArray<FString> Words;
 	UPROPERTY(VisibleAnywhere)
 	FString HiddenWord;
 	TSet<TCHAR> HiddenWordChars;
 
 	void ChangeWord();
 	void SetHiddenWord(const FString& Word);
-	int GetBulls(const FString& Input) const;
-	int GetCows(const FString& Input) const;
+	FBullCowCount GetBullsCows(const FString&) const;
 	void AskAgain() const;
 };

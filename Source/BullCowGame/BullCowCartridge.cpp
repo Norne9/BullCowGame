@@ -1,5 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "BullCowCartridge.h"
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
 
 UBullCowCartridge::UBullCowCartridge()
 {
@@ -9,6 +11,12 @@ UBullCowCartridge::UBullCowCartridge()
 void UBullCowCartridge::BeginPlay() // When the game starts
 {
 	Super::BeginPlay();
+
+	// Load words
+	const auto WordListPath = FPaths::ProjectContentDir() / TEXT("TextData/WordList.txt");
+	FFileHelper::LoadFileToStringArray(Words, *WordListPath);
+	
+	// Start game
 	PrintLine(TEXT("Welcome to game!"));
 	ChangeWord();
 }
@@ -45,16 +53,16 @@ void UBullCowCartridge::OnInput(const FString& Input) // When the player hits en
 		if (CurrentLives <= 0)
 		{
 			PrintLine(TEXT("You lose!"));
+			PrintLine(FString::Printf(TEXT("The word was '%s'"), *HiddenWord));
 			AskAgain();
 		}
 		else
 		{
-			const int Bulls = GetBulls(LowerInput);
-			const int Cows = GetCows(LowerInput);
+			const auto Count = GetBullsCows(LowerInput);
 
 			PrintLine(FString::Printf(TEXT("Lives: %d/%d"), CurrentLives, MaxLives));
-			PrintLine(FString::Printf(TEXT("Bulls: %d"), Bulls));
-			PrintLine(FString::Printf(TEXT("Cows: %d"), Cows));
+			PrintLine(FString::Printf(TEXT("Bulls: %d"), Count.Bulls));
+			PrintLine(FString::Printf(TEXT("Cows: %d"), Count.Cows));
 		}
 	}
 }
@@ -62,7 +70,8 @@ void UBullCowCartridge::OnInput(const FString& Input) // When the player hits en
 void UBullCowCartridge::ChangeWord()
 {
 	CurrentLives = MaxLives;
-	SetHiddenWord(TEXT("Word"));
+	const auto Idx = FMath::RandRange(0, Words.Num() - 1);
+	SetHiddenWord(Words[Idx]);
 	PrintLine(FString::Printf(TEXT("Try guessing %d character word"), HiddenWord.Len()));
 }
 
@@ -74,31 +83,22 @@ void UBullCowCartridge::SetHiddenWord(const FString& Word)
 	HiddenWordChars.Append(HiddenWord.GetCharArray());
 }
 
-int UBullCowCartridge::GetBulls(const FString& Input) const
+FBullCowCount UBullCowCartridge::GetBullsCows(const FString& Input) const
 {
-	const int MaxLen = FMath::Min(Input.Len(), HiddenWord.Len());
-	int BullCount = 0;
-	for (int i = 0; i < MaxLen; ++i)
+	auto Count = FBullCowCount();
+	const int32 MaxLen = FMath::Min(Input.Len(), HiddenWord.Len());
+	for (int32 Idx = 0; Idx < MaxLen; ++Idx)
 	{
-		if (Input[i] == HiddenWord[i])
+		if (Input[Idx] == HiddenWord[Idx])
 		{
-			BullCount += 1;
+			Count.Bulls += 1;
+		}
+		else if (HiddenWordChars.Contains(Input[Idx]))
+		{
+			Count.Cows += 1;
 		}
 	}
-	return BullCount;
-}
-
-int UBullCowCartridge::GetCows(const FString& Input) const
-{
-	int CowCount = 0;
-	for (TCHAR c : Input)
-	{
-		if (HiddenWordChars.Contains(c))
-		{
-			CowCount += 1;
-		}
-	}
-	return CowCount;
+	return Count;
 }
 
 void UBullCowCartridge::AskAgain() const
